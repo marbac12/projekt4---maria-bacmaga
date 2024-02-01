@@ -1,0 +1,75 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+def dsdt(s, e, i, beta):
+    return -beta * i * s
+
+def dedt(s, e, i, beta, sigma):
+    return beta * i * s - sigma * e
+
+def didt(e, i, sigma, gamma):
+    return sigma * e - gamma * i
+
+def drdt(i, gamma):
+    return gamma * i
+
+def funkcja_RunnegoKutty(s, e, i, r, beta, sigma, gamma, h):
+    k1_s = dsdt(s, e, i, beta)
+    k1_e = dedt(s, e, i, beta, sigma)
+    k1_i = didt(e, i, sigma, gamma)
+    k1_r = drdt(i, gamma)
+
+    k2_s = dsdt(s + 0.5 * h * k1_s, e + 0.5 * h * k1_e, i + 0.5 * h * k1_i, beta)
+    k2_e = dedt(s + 0.5 * h * k1_s, e + 0.5 * h * k1_e, i + 0.5 * h * k1_i, beta, sigma)
+    k2_i = didt(e + 0.5 * h * k1_e, i + 0.5 * h * k1_i, sigma, gamma)
+    k2_r = drdt(i + 0.5 * h * k1_i, gamma)
+
+    k3_s = dsdt(s + 0.5 * h * k2_s, e + 0.5 * h * k2_e, i + 0.5 * h * k2_i, beta)
+    k3_e = dedt(s + 0.5 * h * k2_s, e + 0.5 * h * k2_e, i + 0.5 * h * k2_i, beta, sigma)
+    k3_i = didt(e + 0.5 * h * k2_e, i + 0.5 * h * k2_i, sigma, gamma)
+    k3_r = drdt(i + 0.5 * h * k2_i, gamma)
+
+    k4_s = dsdt(s + h * k3_s, e + h * k3_e, i + h * k3_i, beta)
+    k4_e = dedt(s + h * k3_s, e + h * k3_e, i + h * k3_i, beta, sigma)
+    k4_i = didt(e + h * k3_e, i + h * k3_i, sigma, gamma)
+    k4_r = drdt(i + h * k3_i, gamma)
+
+    s_new = s + (h / 6) * (k1_s + 2 * k2_s + 2 * k3_s + k4_s)
+    e_new = e + (h / 6) * (k1_e + 2 * k2_e + 2 * k3_e + k4_e)
+    i_new = i + (h / 6) * (k1_i + 2 * k2_i + 2 * k3_i + k4_i)
+    r_new = r + (h / 6) * (k1_r + 2 * k2_r + 2 * k3_r + k4_r)
+
+    return s_new, e_new, i_new, r_new
+
+
+def model_SEIR(beta, sigma, gamma):
+    t_max, h = 50, 0.1
+    num_steps = int(t_max / h) + 1
+    time = np.linspace(0, t_max, num_steps)
+    susceptible, exposed, infected, removed = np.zeros(num_steps), np.zeros(num_steps), np.zeros(num_steps), np.zeros(num_steps)
+    susceptible[0], exposed[0], infected[0], removed[0] = s0, e0, i0, r0
+
+
+    for i in range(1, num_steps):
+        susceptible[i], exposed[i], infected[i], removed[i] = funkcja_RunnegoKutty(
+            susceptible[i - 1], exposed[i - 1], infected[i - 1], removed[i - 1], beta, sigma, gamma, h
+        )
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(time, susceptible, label='S(t) - Susceptible')
+    plt.plot(time, exposed, label='E(t) - Exposed')
+    plt.plot(time, infected, label='I(t) - Infectious')
+    plt.plot(time, removed, label='R(t) - Removed')
+    plt.xlabel('Czas')
+    plt.ylabel('Liczba osobników')
+    plt.legend()
+    plt.title('Model - przewidywania epidemii, R1 = 22')
+    plt.show()
+    
+beta, sigma, gamma = 1.0, 1.0, 0.1
+s0, e0, i0, r0 = 0.99, 0.01, 0, 0
+
+R1 = 22
+beta_2 = R1 * gamma
+model_SEIR(beta_2, sigma, gamma)
